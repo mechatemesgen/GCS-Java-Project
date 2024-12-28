@@ -1,6 +1,5 @@
 import java.util.*;
 
-
 public class StudentCounselingSystem {
 
     public static void main(String[] args) {
@@ -33,6 +32,250 @@ public class StudentCounselingSystem {
             }
         }
     }
+
+
+
+    // **************************************************************
+
+    // Data for students and counselors
+    private static Map<String, String> studentData = new HashMap<>();
+    private static Map<String, String> counselorData = new HashMap<>();
+    private static Map<String, List<Message>> messageStore = new HashMap<>();
+    private static Map<String, String> messages = new HashMap<>();
+    private static final String adminId = "Admin";
+
+    // Message class to represent each message
+    private static class Message {
+        String senderId;
+        String content;
+        boolean canReply;
+
+        public Message(String senderId, String content, boolean canReply) {
+            this.senderId = senderId;
+            this.content = content;
+            this.canReply = canReply;
+        }
+
+        @Override
+        public String toString() {
+            return "Message: " + content + "\nCan Reply: " + canReply + "\n";
+        }
+    }
+
+    // Helper to display users for selection
+    private static String selectUser(Scanner scanner, Map<String, String> userData) {
+        int index = 1;
+        System.out.printf("%-5s %-20s %-20s%n", "No.", "Name", "ID");
+        System.out.println("--------------------------------------");
+        for (Map.Entry<String, String> entry : userData.entrySet()) {
+            System.out.printf("%-5d %-20s %-20s%n", index, entry.getValue().split(",")[0], entry.getKey());
+            index++;
+        }
+        System.out.println("");
+        System.out.print("Enter the user number to send a message (0 to go back): ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume the newline
+        if (choice == 0) {
+            return null;
+        }
+        if (choice > 0 && choice <= userData.size()) {
+            return new ArrayList<>(userData.keySet()).get(choice - 1);
+        } else {
+            System.out.println("Invalid choice. Try again.");
+            return selectUser(scanner, userData);
+        }
+    }
+
+    // Sending a message
+    private static void sendMessage(Scanner scanner, String senderId, String recipient, String content, boolean canReply) {
+        messageStore.putIfAbsent(recipient, new ArrayList<>());
+        messageStore.get(recipient).add(new Message(senderId, content, canReply));
+        String recipientName = getSenderName(recipient);
+        System.out.println("");
+        System.out.println("Message sent successfully to " + recipientName + "!");
+        System.out.print("Press Enter to continue...");
+        scanner.nextLine();
+    }
+
+    // From student to counselor
+    private static void sendMessageToCounselorFromStudent(Scanner scanner, String studentId) {
+        System.out.println("Select a counselor to send the message:");
+        String counselorId = selectUser(scanner, counselorData);
+        if (counselorId == null) {
+            return;
+        }
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Send Message |**********");
+        System.out.println("**********************************");
+        System.out.print("Enter your message: ");
+        String message = scanner.nextLine();
+        sendMessage(scanner, studentId, counselorId, message, true);
+    }
+
+    // From counselor to student
+    private static void sendMessageToStudentFromCounselor(Scanner scanner, String counselorId) {
+        System.out.println("Select a student to send the message:");
+        String studentId = selectUser(scanner, studentData);
+        if (studentId == null) {
+            return;
+        }
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Send Message |**********");
+        System.out.println("**********************************");
+        System.out.print("Enter your message: ");
+        String message = scanner.nextLine();
+        sendMessage(scanner, counselorId, studentId, message, true);
+    }
+
+    // From counselor to admin
+    private static void sendMessageToAdminFromCounselor(Scanner scanner, String counselorId) {
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Send Message |**********");
+        System.out.println("**********************************");
+        System.out.print("Enter your message: ");
+        String message = scanner.nextLine();
+        sendMessage(scanner, counselorId, "Admin", message, false);
+    }
+
+    // From counselor to counselor
+    private static void sendMessageToCounselorFromCounselor(Scanner scanner, String counselorId) {
+        System.out.println("Select a counselor to send the message:");
+        String recipientId = selectUser(scanner, counselorData);
+        if (recipientId == null) {
+            return;
+        }
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Send Message |**********");
+        System.out.println("**********************************");
+        System.out.print("Enter your message: ");
+        String message = scanner.nextLine();
+        sendMessage(scanner, counselorId, recipientId, message, true);
+    }
+
+    // From admin to student
+    private static void sendMessageToStudentFromAdmin(Scanner scanner) {
+        System.out.println("Select a student to send the message:");
+        String studentId = selectUser(scanner, studentData);
+        if (studentId == null) {
+            return;
+        }
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Send Message |**********");
+        System.out.println("**********************************");
+        System.out.print("Enter your message: ");
+        String message = scanner.nextLine();
+        sendMessage(scanner, adminId, studentId, message, false);
+    }
+
+    // From admin to counselor
+    private static void sendMessageToCounselorFromAdmin(Scanner scanner) {
+        System.out.println("Select a counselor to send the message:");
+        String counselorId = selectUser(scanner, counselorData);
+        if (counselorId == null) {
+            return;
+        }
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Send Message |**********");
+        System.out.println("**********************************");
+        System.out.print("Enter your message: ");
+        String message = scanner.nextLine();
+        sendMessage(scanner, adminId, counselorId, message, false);
+    }
+    // Viewing messages for students
+    private static void messageForStudent(Scanner scanner, String studentId) {
+        List<Message> messages = messageStore.getOrDefault(studentId, new ArrayList<>());
+        if (messages.isEmpty()) {
+        System.out.println("No messages for you.");
+        } else {
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Messages |**************");
+        System.out.println("**********************************");
+        System.out.println("Messages for Student (" + studentId + "):");
+        for (Message message : messages) {
+            String senderName = getSenderName(message.senderId);
+            System.out.println("From: " + senderName);
+            System.out.println(message);
+        }
+        }
+        System.out.print("Press Enter to go back...");
+        scanner.nextLine();
+    }
+
+    // Viewing messages for counselors
+    private static void messageForCounselor(Scanner scanner, String counselorId) {
+        List<Message> messages = messageStore.getOrDefault(counselorId, new ArrayList<>());
+        if (messages.isEmpty()) {
+        System.out.println("No messages for you.");
+        } else {
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Messages |**************");
+        System.out.println("**********************************");
+        System.out.println("Messages for Counselor (" + counselorId + "):");
+        for (Message message : messages) {
+            String senderName = getSenderName(message.senderId);
+            System.out.println("From: " + senderName);
+            System.out.println(message);
+        }
+        }
+        System.out.print("Press Enter to go back...");
+        scanner.nextLine();
+    }
+
+    // Viewing messages for admin
+    private static void messageForAdmin(Scanner scanner) {
+        List<Message> messages = messageStore.getOrDefault("Admin", new ArrayList<>());
+        if (messages.isEmpty()) {
+        System.out.println("No messages for you.");
+        } else {
+        clearScreen();
+        System.out.println("**********************************");
+        System.out.println("********| Messages |**************");
+        System.out.println("**********************************");
+        System.out.println("Messages for Admin:");
+        for (Message message : messages) {
+            String senderName = getSenderName(message.senderId);
+            System.out.println("From: " + senderName);
+            System.out.println(message);
+        }
+        }
+        System.out.print("Press Enter to go back...");
+        scanner.nextLine();
+    }
+
+        // Helper method to get sender name
+        private static String getSenderName(String senderId) {
+            if (studentData.containsKey(senderId)) {
+                String[] studentDetails = studentData.get(senderId).split(",");
+                return studentDetails[0];
+            } else if (counselorData.containsKey(senderId)) {
+                String[] counselorDetails = counselorData.get(senderId).split(",");
+                return counselorDetails[0];
+            } else if ("Admin".equals(senderId)) {
+                return "Admin";
+            } else if (userData.containsKey(senderId)) {
+                String[] userDetails = userData.get(senderId).split(",");
+                return userDetails[0];
+            } else {
+                return "Unknown";
+            }
+        }
+
+
+
+        
+
+    // **********************************************************************
+    
+
+
 
 
     private static void showWelcomePage() {
@@ -100,7 +343,9 @@ public class StudentCounselingSystem {
         String position = scanner.nextLine();
 
         // Store user data
-        userData.put(id, name + "," + id + "," + email + "," + position);
+        // System.out.print("Enter Password: ");
+        // String password = scanner.nextLine();
+        userData.put(id, name + "," + id + "," + email + "," + position + "," );
 
         // Logic to send forget password request to admin
         if (requestStatus.containsKey(id)) {
@@ -114,31 +359,57 @@ public class StudentCounselingSystem {
         scanner.nextLine();
     }
 
-    private static void checkStatus(Scanner scanner) {
-                clearScreen();
-                System.out.println("**********************************");
-                System.out.println("*********| Check Status |*********");
-                System.out.println("**********************************");
-                System.out.print("Enter Name: ");
-                String name = scanner.nextLine();
-                System.out.print("Enter ID Number: ");
-                String id = scanner.nextLine();
-                // Logic to check status of forget password request
-                if (requestStatus.containsKey(id)) {
-                    String[] statusDetails = requestStatus.get(id).split(",");
-                    if (statusDetails[0].equals(name)) {
-                        System.out.println("Your request status: " + statusDetails[2]);
-                    } else {
-                        System.out.println("No request found for the given Name and ID.");
-                    }
-                } else {
-                    System.out.println("No request found for the given ID.");
-                }
-                System.out.print("Press Enter to go back...");
-                scanner.nextLine();
-            }
 
-            private static void showFAQ(Scanner scanner) {
+// *****************************************************************
+
+private static void checkStatus(Scanner scanner) {
+    clearScreen();
+    System.out.println("**********************************");
+    System.out.println("*********| Check Status |*********");
+    System.out.println("**********************************");
+    System.out.print("Enter Name: ");
+    String name = scanner.nextLine();
+    System.out.print("Enter ID Number: ");
+    String id = scanner.nextLine();
+    // Logic to check status of forget password request
+    if (requestStatus.containsKey(id)) {
+        String[] statusDetails = requestStatus.get(id).split(",");
+        if (statusDetails[0].equals(name)) {
+            System.out.println("");
+            System.out.println("Your request status: " + statusDetails[2]);
+            if ("Approved".equals(statusDetails[2])) {
+                String[] userDetails;
+                if (studentData.containsKey(id)) {
+                    userDetails = studentData.get(id).split(",");
+                } else if (counselorData.containsKey(id)) {
+                    userDetails = counselorData.get(id).split(",");
+                } else {
+                    System.out.println("No user data found for the given ID.");
+                    System.out.print("Press Enter to go back...");
+                    scanner.nextLine();
+                    return;
+                }
+                System.out.println("");
+                System.out.println("-------------------------------------------------");
+                System.out.println("User ID: " + id);
+                System.out.println("Password: " + userDetails[2]);
+                System.out.println("Email: " + userDetails[1]);
+                System.out.println("-------------------------------------------------");
+                System.out.println("");
+                System.out.println("Please remember your credentials.");
+            }
+        } else {
+            System.out.println("No request found for the given Name and ID.");
+        }
+    } else {
+        System.out.println("No request found for the given ID.");
+    }
+    System.out.print("Press Enter to go back...");
+    scanner.nextLine();
+}
+
+//***************************************************** */ 
+    private static void showFAQ(Scanner scanner) {
         clearScreen();
         System.out.println("**********************************");
         System.out.println("************| FAQ |***************");
@@ -219,7 +490,7 @@ private static void showStudentDashboard(Scanner scanner, String studentId) {
                     viewStudentAppointments(scanner);
                     break;
                 case 4:
-                    sendMessageToCounselorFromStudent(scanner);
+                    sendMessageToCounselorFromStudent(scanner, studentId);
                     break;
                 case 5:
                     messageForStudent(scanner, studentId);
@@ -354,173 +625,9 @@ private static void showStudentDashboard(Scanner scanner, String studentId) {
     
     private static Map<String, String> studentAppointments = new HashMap<>();
 
-    // Store messages sent to counselors from students
-    private static Map<String, Map<String, String>> studentToCounselorMessages = new LinkedHashMap<>();
 
-    private static void sendMessageToCounselorFromStudent(Scanner scanner) {
-        if (counselorAvailability.isEmpty()) {
-            clearScreen();
-            System.out.println("*************************************");
-            System.out.println("****| Send Message to Counselor |****");
-            System.out.println("*************************************");
-            System.out.println("");
-            System.out.println("No counselors available.");
-            System.out.print("Press Enter to go back...");
-            scanner.nextLine();
-            return;
-        }
-
-        int index = 1;
-        clearScreen();
-        System.out.println("**********************************");
-        System.out.println("****|  Select User to send   |****");
-        System.out.println("**********************************");
-        System.out.println("--------------------------------------");
-        System.out.printf("%-5s %-20s %-20s%n", "No.", "Name", "Availability");
-        System.out.println("--------------------------------------");
-        for (Map.Entry<String, String> entry : counselorAvailability.entrySet()) {
-            String[] counselorDetails = entry.getValue().split(": ");
-            System.out.printf("%-5d %-20s %-20s%n", index, counselorDetails[0], counselorDetails[1]);
-            index++;
-        }
-
-        System.out.println("");
-        System.out.print("Enter the counselor number to send message (0 to go back): ");
-        int choice = scanner.nextInt();
-        scanner.nextLine(); // consume newline
-
-        if (choice == 0) {
-            return;
-        } else if (choice > 0 && choice <= counselorAvailability.size()) {
-            String selectedDate = (String) counselorAvailability.keySet().toArray()[choice - 1];
-            String[] counselorDetails = counselorAvailability.get(selectedDate).split(": ");
-            String counselorName = counselorDetails[0];
-            clearScreen();
-            System.out.println("*************************************");
-            System.out.println("****| Send Message to Counselor |****");
-            System.out.println("*************************************");
-            System.out.println("Selected Counselor: " + counselorName);
-            System.out.println("");
-            System.out.print("Enter your message: ");
-            String message = scanner.nextLine();
-            String studentId = "student"; // Assuming the student ID is "student" for demonstration
-
-            // Store message for the counselor from the student
-            studentToCounselorMessages.putIfAbsent(studentId, new LinkedHashMap<>());
-            studentToCounselorMessages.get(studentId).put(counselorName, message);
-
-            messages.put(counselorName, "From: " + studentId + ", Message: " + message);
-            System.out.println("");
-            System.out.println("Message sent to " + counselorName + ".");
-        } else {
-            System.out.println("Invalid choice.");
-        }
-        System.out.print("Press Enter to continue...");
-        scanner.nextLine();
-        }
-
-
-
-
-
-         
-       
-        private static void messageForStudent(Scanner scanner, String studentId) {
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("********| Messages |**************");
-            System.out.println("**********************************");
-            boolean hasMessages = false;
-
-            // Display messages from admin
-            if (studentMessages.containsKey(studentId)) {
-                hasMessages = true;
-                System.out.println("");
-                System.out.println("------------------------------------");
-                System.out.println(">>>>|   Messages from Admin    |<<<<");
-                System.out.println("------------------------------------");
-                System.out.println("");
-                int messageIndex = 1;
-                for (String message : studentMessages.getOrDefault(studentId, new ArrayList<>())) {
-                    System.out.println(messageIndex + ". Message: " + message);
-                    System.out.println("");
-                    System.out.println("-----------------------------------");
-                    messageIndex++;
-                }
-            }
-
-
-
-            
-            // Display messages from counselors
-            if (counselorToStudentMessages.containsKey(studentId)) {
-                hasMessages = true;
-                System.out.println("");
-                System.out.println("------------------------------------");
-                System.out.println(">>>>| Messages from Counselors |<<<<");
-                System.out.println("------------------------------------");
-                System.out.println("");
-                int messageIndex = 1;
-                for (Map.Entry<String, String> entry : counselorToStudentMessages.get(studentId).entrySet()) {
-                    String counselorName = entry.getKey();
-                    System.out.println(messageIndex + ". From Counselor: " + counselorName);
-                    System.out.println("Message: " + entry.getValue());
-                    System.out.println("---------------------------------------------");
-                    messageIndex++;
-                }
-            }
-
-            // Display replies from student to counselors
-            if (studentToCounselorMessages.containsKey(studentId)) {
-                hasMessages = true;
-                System.out.println("");
-                System.out.println("------------------------------------");
-                System.out.println(">>>>| Replies to Counselors |<<<<");
-                System.out.println("------------------------------------");
-                System.out.println("");
-                int messageIndex = 1;
-                for (Map.Entry<String, String> entry : studentToCounselorMessages.get(studentId).entrySet()) {
-                    String counselorName = entry.getKey();
-                    System.out.println(messageIndex + ". To Counselor: " + counselorName);
-                    System.out.println("Message: " + entry.getValue());
-                    System.out.println("---------------------------------------------");
-                    messageIndex++;
-                }
-            }
-
-            if (!hasMessages) {
-                System.out.println("No messages available.");
-            } else {
-                System.out.print("Enter the message number to reply (0 to go back): ");
-                int choice = scanner.nextInt();
-                scanner.nextLine(); // consume newline
-
-                if (choice > 0) {
-                    int messageIndex = 1;
-                    for (Map.Entry<String, String> entry : counselorToStudentMessages.get(studentId).entrySet()) {
-                        if (messageIndex == choice) {
-                            String counselorName = entry.getKey();
-                            System.out.print("Enter your reply to " + counselorName + ": ");
-                            String reply = scanner.nextLine();
-                            studentToCounselorMessages.putIfAbsent(studentId, new LinkedHashMap<>());
-                            studentToCounselorMessages.get(studentId).put(counselorName, reply);
-                            System.out.println("Reply sent to " + counselorName + ".");
-                            break;
-                        }
-                        messageIndex++;
-                    }
-                }
-            }
-
-            System.out.print("Press Enter to go back...");
-            scanner.nextLine();
-        }
-        
-        
-
-
-
-
+   
+    // **********************************************************************
 
         
         private static void viewStudentNotifications(Scanner scanner) {
@@ -613,13 +720,13 @@ private static void showCounselorDashboard(Scanner scanner, String counselorId) 
                     updateAvailability(scanner);
                     break;
                 case 2:
-                    sendMessage(scanner);
+                    counselorSendsMessage(scanner, counselorId);
                     break;
                 case 3:
                     viewAppointments(scanner);
                     break;
                 case 4:
-                    messageForCounselor(scanner);
+                    messageForCounselor(scanner, counselorId);
                     break;
                 case 5:
                     viewNotifications(scanner);
@@ -766,7 +873,7 @@ private static void showCounselorDashboard(Scanner scanner, String counselorId) 
 
 
         
-        private static void sendMessage(Scanner scanner) {
+        private static void counselorSendsMessage(Scanner scanner, String counselorId) {
             while (true) {
                 clearScreen();
                 System.out.println("**********************************");
@@ -781,11 +888,11 @@ private static void showCounselorDashboard(Scanner scanner, String counselorId) 
                 scanner.nextLine(); // consume newline
 
                 if (recipientChoice == 1) {
-                    sendMessageToStudentFromCounselor(scanner);
+                    sendMessageToStudentFromCounselor(scanner, counselorId);
                 } else if (recipientChoice == 2) {
-                    sendMessageToAdminFromCounselor(scanner);
+                    sendMessageToAdminFromCounselor(scanner, counselorId);
                 } else if (recipientChoice == 3) {
-                    sendMessageToCounselorFromCounselor(scanner);
+                    sendMessageToCounselorFromCounselor(scanner, counselorId);
                 } else if (recipientChoice == 4) {
                     return;
                 } else {
@@ -795,154 +902,8 @@ private static void showCounselorDashboard(Scanner scanner, String counselorId) 
         }
 
 
-
-        // store each message sent for each student from counselors
-        private static Map<String, String> messages = new LinkedHashMap<>();      
-        
-        
-        
-        //store messages sent to studens from counselors  
-        private static Map<String, Map<String, String>> counselorToStudentMessages = new LinkedHashMap<>();
-
-        private static void sendMessageToStudentFromCounselor(Scanner scanner) {
-            if (studentData.isEmpty()) {
-            System.out.println("No students available.");
-            System.out.print("Press Enter to go back...");
-            scanner.nextLine();
-            return;
-            }
-
-            int index = 1;
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("*****| Select User to Send |******");
-            System.out.println("**********************************");
-            System.out.println("--------------------------------------");
-            System.out.printf("%-5s %-20s %-20s%n", "No.", "Name", "ID");
-            System.out.println("--------------------------------------");
-            for (Map.Entry<String, String> entry : studentData.entrySet()) {
-            String[] studentDetails = entry.getValue().split(",");
-            System.out.printf("%-5d %-20s %-20s%n", index, studentDetails[0], entry.getKey());
-            index++;
-            }
-
-            System.out.print("Enter the student number to send message (0 to go back): ");
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // consume newline
-
-            if (choice == 0) {
-            return;
-            } else if (choice > 0 && choice <= studentData.size()) {
-            String selectedStudentId = (String) studentData.keySet().toArray()[choice - 1];
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("***| Send Message to Student |****");
-            System.out.println("**********************************");
-            String[] selectedStudentDetails = studentData.get(selectedStudentId).split(",");
-            System.out.println("Selected Student: " + selectedStudentDetails[0]);
-            System.out.println("");
-            System.out.print("Enter your message: ");
-            String message = scanner.nextLine();
-            
-            // Store message for the student from the counselor
-            counselorToStudentMessages.putIfAbsent(selectedStudentId, new LinkedHashMap<>());
-            counselorToStudentMessages.get(selectedStudentId).put("counselor", message);
-            
-            messages.put(selectedStudentId, "From Counselor: " + message);
-            System.out.println("");
-            System.out.println("Message sent to " + studentData.get(selectedStudentId).split(",")[0] + ".");
-            } else {
-            System.out.println("Invalid choice.");
-            }
-            System.out.print("Press Enter to continue...");
-            scanner.nextLine();
-        }
-
-
-
-
-
-
-        private static void sendMessageToAdminFromCounselor(Scanner scanner) {
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("***| Send Message to Admin |******");
-            System.out.println("**********************************");
-            System.out.print("Enter your message: ");
-            String message = scanner.nextLine();
-            String counselorId = "counselor"; // Assuming the counselor ID is "counselor" for demonstration
-            counselorToAdminMessages.put(counselorId, "From: " + counselorId + ", Message: " + message);
-            System.out.println("");
-            System.out.println("Message sent to admin.");
-            System.out.print("Press Enter to continue...");
-            scanner.nextLine();
-        }
-        // Store each message sent to admin from each counselor
-        private static Map<String, String> counselorToAdminMessages = new LinkedHashMap<>();
-
-
-        // Store each message sent to other counselors from one counselor
-        private static Map<String, String> counselorToCounselorMessages = new LinkedHashMap<>();
-
-        private static void sendMessageToCounselorFromCounselor(Scanner scanner) {
-            if (counselorData.isEmpty()) {
-                clearScreen();
-                System.out.println("****************************************");
-                System.out.println("******| Send Message to Counselor |*****");
-                System.out.println("****************************************");
-                System.out.println("");
-                System.out.println("No counselors available.");
-                System.out.print("Press Enter to go back...");
-                scanner.nextLine();
-                return;
-            }
-
-            int index = 1;
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("******| Select User to Send |*****");
-            System.out.println("**********************************");
-            System.out.println("--------------------------------------");
-            System.out.printf("%-5s %-20s %-20s%n", "No.", "Name", "ID");
-            System.out.println("--------------------------------------");
-           
-            for (Map.Entry<String, String> entry : counselorData.entrySet()) {
-                String[] counselorDetails = entry.getValue().split(",");
-                System.out.printf("%-5d %-20s %-20s%n", index, counselorDetails[0], entry.getKey());
-                index++;
-            }
-
-            System.out.println("");
-            System.out.print("Enter the counselor number to send message (0 to go back): ");
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // consume newline
-
-            if (choice == 0) {
-                return;
-            } else if (choice > 0 && choice <= counselorData.size()) {
-                String selectedCounselorId = (String) counselorData.keySet().toArray()[choice - 1];
-                clearScreen();
-                System.out.println("**********************************");
-                System.out.println("***| Send Message to Counselor |**");
-                System.out.println("**********************************");
-                String[] selectedCounselorDetails = counselorData.get(selectedCounselorId).split(",");
-                System.out.println("Selected Counselor: " + selectedCounselorDetails[0]);
-                System.out.println("");
-                System.out.print("Enter your message: ");
-                String message = scanner.nextLine();
-                counselorToCounselorMessages.put(selectedCounselorId, "Counselor: " + message);
-                System.out.println("");
-                System.out.println("Message sent to " + counselorData.get(selectedCounselorId).split(",")[0] + ".");
-            } else {
-                System.out.println("Invalid choice.");
-            }
-            System.out.print("Press Enter to continue...");
-            scanner.nextLine();
-        }
-
-
-//**************************************************************** */
-
+   
+    // **********************************************************************
 
 private static void viewAppointments(Scanner scanner) {
         // Display appointments logic here
@@ -955,92 +916,8 @@ private static void viewAppointments(Scanner scanner) {
         scanner.nextLine();
      }
 
-    //*********************************************************** */
-            
-    private static void messageForCounselor(Scanner scanner) {
-        clearScreen();
-        System.out.println("**********************************");
-        System.out.println("********| View Messages |*********");
-        System.out.println("**********************************");
-
-        boolean hasMessages = false;
-        List<String> messageKeys = new ArrayList<>();
-
-        // Display messages from students
-        int messageIndex = 1;
-        for (Map.Entry<String, Map<String, String>> entry : studentToCounselorMessages.entrySet()) {
-            for (Map.Entry<String, String> messageEntry : entry.getValue().entrySet()) {
-                if (messageEntry.getKey().equals("counselor")) {
-                    hasMessages = true;
-                    System.out.println(messageIndex + ". From Student: " + entry.getKey());
-                    System.out.println("Message: " + messageEntry.getValue());
-                    System.out.println("**********************************");
-                    messageKeys.add("student:" + entry.getKey());
-                    messageIndex++;
-                }
-            }
-        }
-
-        // Display messages from admin
-        for (Map.Entry<String, String> entry : counselorToAdminMessages.entrySet()) {
-            if (entry.getKey().equals("counselor")) {
-                hasMessages = true;
-                System.out.println(messageIndex + ". From Admin: " + entry.getKey());
-                System.out.println("Message: " + entry.getValue());
-                System.out.println("**********************************");
-                messageKeys.add("admin:" + entry.getKey());
-                messageIndex++;
-            }
-        }
-
-        // Display messages from other counselors
-        for (Map.Entry<String, String> entry : counselorToCounselorMessages.entrySet()) {
-            if (entry.getKey().startsWith("counselor")) {
-                hasMessages = true;
-                System.out.println(messageIndex + ". From Counselor: " + entry.getKey());
-                System.out.println("Message: " + entry.getValue());
-                System.out.println("**********************************");
-                messageKeys.add("counselor:" + entry.getKey());
-                messageIndex++;
-            }
-        }
-
-        if (!hasMessages) {
-            System.out.println("No messages available.");
-        } else {
-            System.out.print("Enter the message number to reply (0 to go back): ");
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // consume newline
-
-            if (choice > 0 && choice <= messageKeys.size()) {
-                String[] selectedMessage = messageKeys.get(choice - 1).split(":");
-                String recipientType = selectedMessage[0];
-                String recipientId = selectedMessage[1];
-
-                System.out.print("Enter your reply: ");
-                String reply = scanner.nextLine();
-
-                if (recipientType.equals("student")) {
-                    studentToCounselorMessages.putIfAbsent(recipientId, new LinkedHashMap<>());
-                    studentToCounselorMessages.get(recipientId).put("counselor", reply);
-                    System.out.println("Reply sent to Student: " + recipientId);
-                } else if (recipientType.equals("admin")) {
-                    counselorToAdminMessages.put("counselor", reply);
-                    System.out.println("Reply sent to Admin.");
-                } else if (recipientType.equals("counselor")) {
-                    counselorToCounselorMessages.put(recipientId, reply);
-                    System.out.println("Reply sent to Counselor: " + recipientId);
-                }
-            }
-        }
-
-        System.out.print("Press Enter to go back...");
-        scanner.nextLine();
-    }
-
-//***************************************************************************** */
-
-
+   
+    // **********************************************************************
         
         private static void viewNotifications(Scanner scanner) {
         if (announcementsToCounselors.isEmpty() && announcementsToBoth.isEmpty()) {
@@ -1153,6 +1030,39 @@ private static void viewAppointments(Scanner scanner) {
     }
 }
 
+   
+    // **********************************************************************
+ private static void sendMessageFromAdmin(Scanner scanner) {
+            while (true) {
+                clearScreen();
+                System.out.println("**********************************");
+                System.out.println("********| Send Message |**********");
+                System.out.println("**********************************");
+                System.out.println("1. To Student");
+                System.out.println("2. To Counselor");
+                System.out.println("3. Go Back");
+                System.out.print("Select recipient: ");
+                int recipientChoice = scanner.nextInt();
+                scanner.nextLine(); // consume newline
+
+                switch (recipientChoice) {
+                    case 1:
+                        sendMessageToStudentFromAdmin(scanner);
+                        break;
+                    case 2:
+                        sendMessageToCounselorFromAdmin(scanner);
+                        break;
+                    case 3:
+                        return;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                }
+                
+            }
+        }
+
+
+
 
 // ***********| store the status of the request |***********
 
@@ -1180,8 +1090,8 @@ private static void handleRequests(Scanner scanner) {
         System.out.printf("%-5d %-20s %-20s %-30s %-20s %-20s%n", index, userDetails[0], userDetails[1], userDetails[2], userDetails[3], status);
         index++;
     }
-    scanner.nextLine(); // consume newline
 
+    System.out.println("");
     System.out.print("Enter the request number to handle (0 to go back): ");
     int choice = scanner.nextInt();
     scanner.nextLine(); // consume newline
@@ -1201,6 +1111,24 @@ private static void handleRequests(Scanner scanner) {
         if (action == 1) {
             requestStatus.put(selectedUserId, userDetails[0] + "," + userDetails[1] + ",Approved");
             System.out.println("Request approved.");
+            System.out.println("Do you want to add this user as a Student or Counselor?");
+            System.out.println("1. Add as Student");
+            System.out.println("2. Add as Counselor");
+            System.out.print("Please select an option: ");
+            int addChoice = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+
+            if (addChoice == 1) {
+                addStudent(scanner);
+            } else if (addChoice == 2) {
+                addCounselor(scanner);
+            } else {
+                System.out.println("Invalid choice.");
+            }
+
+            // Display user ID and password to the requester
+            System.out.println("User ID: " + userDetails[1]);
+            System.out.println("Password: " + userDetails[2]);
         } else if (action == 2) {
             requestStatus.put(selectedUserId, userDetails[0] + "," + userDetails[1] + ",Rejected");
             System.out.println("Request rejected.");
@@ -1212,7 +1140,8 @@ private static void handleRequests(Scanner scanner) {
     }
 }
 
-        private static Map<String, String> studentData = new HashMap<>();
+// *****************************************************************************
+
 
         private static void addStudent(Scanner scanner) {
             while (true) {
@@ -1257,7 +1186,6 @@ private static void handleRequests(Scanner scanner) {
 
 
         
-        private static Map<String, String> counselorData = new HashMap<>();
 
         private static void addCounselor(Scanner scanner) {
             while (true) {
@@ -1483,142 +1411,9 @@ private static void handleRequests(Scanner scanner) {
                 scanner.nextLine();
             }
 
-
-
-
-
-
-        private static void messageForAdmin(Scanner scanner) {
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("********| My Messages |*********");
-            System.out.println("**********************************");
-
-            boolean hasMessages = false;
-            for (Map.Entry<String, String> entry : messages.entrySet()) {
-                if (counselorData.containsKey(entry.getKey())) {
-                    hasMessages = true;
-                    String[] counselorDetails = counselorData.get(entry.getKey()).split(",");
-                    System.out.println("From: " + counselorDetails[0]);
-                    System.out.println("Message: " + entry.getValue());
-                    System.out.println("**********************************");
-                    System.out.print("Do you want to reply to this message? (yes/no): ");
-                    String replyChoice = scanner.nextLine();
-                    if ("yes".equalsIgnoreCase(replyChoice)) {
-                        System.out.print("Enter your reply: ");
-                        String reply = scanner.nextLine();
-                        messages.put(entry.getKey(), "Admin: " + reply);
-                        System.out.println("Reply sent.");
-                    }
-                }
-            }
-
-            if (!hasMessages) {
-                System.out.println("");
-                System.out.println("No messages from counselors.");
-            }
-
-            System.out.println("");
-            System.out.print("Press Enter to go back...");
-            scanner.nextLine();
-        }
-
-
-
-
-        private static void sendMessageFromAdmin(Scanner scanner) {
-            clearScreen();
-            System.out.println("**********************************");
-            System.out.println("********| Send Message |**********");
-            System.out.println("**********************************");
-            System.out.println("1. To Student");
-            System.out.println("2. To Counselor");
-            System.out.print("Select recipient: ");
-            int recipientChoice = scanner.nextInt();
-            scanner.nextLine(); // consume newline
-
-            if (recipientChoice == 1) {
-                sendMessageToIndividual(scanner, studentData, "student");
-            } else if (recipientChoice == 2) {
-                sendMessageToIndividual(scanner, counselorData, "counselor");
-            } else {
-                System.out.println("Invalid choice.");
-            }
-        }
-
-        private static void sendMessageToIndividual(Scanner scanner, Map<String, String> userData, String userType) {
-            if (userData.isEmpty()) {
-                System.out.print("");
-                System.out.println("No users available.");
-                System.out.print("Press Enter to go back...");
-                scanner.nextLine();
-                return;
-            }
-
-            int index = 1;
-            System.out.printf("%-5s %-20s %-20s%n", "No.", "Name", "ID");
-            System.out.println("--------------------------------------");
-            for (Map.Entry<String, String> entry : userData.entrySet()) {
-                String[] userDetails = entry.getValue().split(",");
-                System.out.printf("%-5d %-20s %-20s%n", index, userDetails[0], entry.getKey());
-                index++;
-            }
-
-            System.out.println("");
-            System.out.print("Enter the user number to send message (0 to go back): ");
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // consume newline
-
-            if (choice == 0) {
-                return;
-            } else if (choice > 0 && choice <= userData.size()) {
-                String selectedUserId = (String) userData.keySet().toArray()[choice - 1];
-                String[] selectedUserDetails = userData.get(selectedUserId).split(",");
-                clearScreen();
-                System.out.println("**********************************");
-                System.out.println("******| Send Message |************");
-                System.out.println("**********************************");
-                System.out.println("Selected User: " + selectedUserDetails[0] + " (ID: " + selectedUserId + ")");
-                System.out.println("");
-                System.out.print("Enter your message: ");
-                String message = scanner.nextLine();
-
-                if (userType.equals("student")) {
-                studentMessages.putIfAbsent(selectedUserId, new ArrayList<>());
-                studentMessages.get(selectedUserId).add(message);
-                } else if (userType.equals("counselor")) {
-                counselorMessages.put(selectedUserId, message);
-                }
-
-                System.out.println("");
-                System.out.println("Message sent successfully to " + selectedUserDetails[0] + ".");
-                System.out.println("*********************************");
-                System.out.println("");
-                System.out.println("1. Send another message");
-                System.out.println("2. Go back");
-                System.out.print("Please select an option: ");
-                int nextAction = scanner.nextInt();
-                scanner.nextLine(); // consume newline
-
-                if (nextAction == 1) {
-                clearScreen();
-                sendMessageToIndividual(scanner, userData, userType);
-                } else if (nextAction == 2) {
-                return;
-                } else {
-                System.out.println("Invalid choice. Going back...");
-                }
-            } else {
-                System.out.println("Invalid choice.");
-            }
-        }
-
-
-    private static Map<String, List<String>> studentMessages = new HashMap<>();
-    private static Map<String, String> counselorMessages = new HashMap<>();
-
-  
-
+   
+    // **********************************************************************
+       
 
     // ***********| Store announcements |***********
     private static Map<String, String> announcementsToStudents = new HashMap<>();
@@ -1704,7 +1499,3 @@ private static void handleRequests(Scanner scanner) {
         System.out.flush();
     }
 }
-
-
-
-
